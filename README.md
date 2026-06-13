@@ -9,7 +9,7 @@ Simple Flappy Bird style game using HTML Canvas + vanilla JavaScript.
 - **Blue button** or **tap Space**: Move up  
 - **Restart button**: Reset game
 
-## Run locally
+### Run locally
 
 Just open `index.html` in your browser. No build step needed.
 
