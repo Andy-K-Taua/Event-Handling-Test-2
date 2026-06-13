@@ -1,116 +1,213 @@
-var myGamePiece;
-var myObstacles = [];
-var myScore;
+"use strict";
 
-function startGame() {
-    myGamePiece = new component(30, 30, "red", 10, 120);
-    myGamePiece.gravity = 0;
-    myScore = new component("25px", "Consolas", "black", 200, 40, "text");
-    myGameArea.start();
-}
+const CONFIG = {
+    CANVAS_WIDTH: 376,
+    CANVAS_HEIGHT: 384,
+    FRAME_INTERVAL: 20,
+    PLAYER_SIZE: 30,
+    OBSTACLE_WIDTH: 10,
+    OBSTACLE_SPEED: 1,
+    OBSTACLE_INTERVAL: 150,
+    GRAVITY: 0.05
+};
 
-var myGameArea = {
-    canvas : document.createElement("canvas"),
-    start : function() {
-        this.canvas.width = 376;
-        this.canvas.height = 384;
+class GameArea {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.canvas = document.createElement("canvas");
+        this.canvas.width = CONFIG.CANVAS_WIDTH;
+        this.canvas.height = CONFIG.CANVAS_HEIGHT;
         this.context = this.canvas.getContext("2d");
-        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.container.appendChild(this.canvas);
+        
         this.frameNo = 0;
-        this.interval = setInterval(updateGameArea, 20);
-        },
-    clear : function() {
+        this.interval = null;
+        this.isRunning = false;
+    }
+
+    reset() {
+        this.stop();
+        this.clear();
+        this.frameNo = 0;
+    }
+
+    start(updateCallback) {
+        this.isRunning = true;
+        this.interval = setInterval(updateCallback, CONFIG.FRAME_INTERVAL);
+    }
+
+    stop() {
+        clearInterval(this.interval);
+        this.isRunning = false;
+    }
+
+    clear() {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 }
 
-function component(width, height, color, x, y, type) {
-    this.type = type;
-    this.score = 0;
-    this.width = width;
-    this.height = height;
-    this.speedX = 0;
-    this.speedY = 0;    
-    this.x = x;
-    this.y = y;
-    this.gravity = 0;
-    this.gravitySpeed = 0;
-    this.update = function() {
-        ctx = myGameArea.context;
-        if (this.type == "text") {
-            ctx.font = this.width + " " + this.height;
-            ctx.fillStyle = color;
+class Component {
+    constructor(width, height, color, x, y, type = "rect") {
+        this.type = type;
+        this.width = width;
+        this.height = height;
+        this.color = color;
+        this.x = x;
+        this.y = y;
+        this.speedX = 0;
+        this.speedY = 0;
+        this.gravity = 0;
+        this.gravitySpeed = 0;
+        this.text = "";
+    }
+
+    update(ctx) {
+        if (this.type === "text") {
+            ctx.font = `${this.width} ${this.height}`;
+            ctx.fillStyle = this.color;
             ctx.fillText(this.text, this.x, this.y);
         } else {
-            ctx.fillStyle = color;
+            ctx.fillStyle = this.color;
             ctx.fillRect(this.x, this.y, this.width, this.height);
         }
     }
-    this.newPos = function() {
+
+    newPos() {
         this.gravitySpeed += this.gravity;
         this.x += this.speedX;
         this.y += this.speedY + this.gravitySpeed;
-        this.hitBottom();
+        this.hitBounds();
     }
-    this.hitBottom = function() {
-        var rockbottom = myGameArea.canvas.height - this.height;
-        if (this.y > rockbottom) {
-            this.y = rockbottom;
+
+    hitBounds() {
+        const rockBottom = CONFIG.CANVAS_HEIGHT - this.height;
+        if (this.y > rockBottom) {
+            this.y = rockBottom;
+            this.gravitySpeed = 0;
+        }
+        if (this.y < 0) {
+            this.y = 0;
             this.gravitySpeed = 0;
         }
     }
-    this.crashWith = function(otherobj) {
-        var myleft = this.x;
-        var myright = this.x + (this.width);
-        var mytop = this.y;
-        var mybottom = this.y + (this.height);
-        var otherleft = otherobj.x;
-        var otherright = otherobj.x + (otherobj.width);
-        var othertop = otherobj.y;
-        var otherbottom = otherobj.y + (otherobj.height);
-        var crash = true;
-        if ((mybottom < othertop) || (mytop > otherbottom) || (myright < otherleft) || (myleft > otherright)) {
-            crash = false;
+
+    crashWith(other) {
+        return !(
+            this.y + this.height < other.y ||
+            this.y > other.y + other.height ||
+            this.x + this.width < other.x ||
+            this.x > other.x + other.width
+        );
+    }
+}
+
+const game = (() => {
+    let gameArea;
+    let player;
+    let obstacles = [];
+    let score;
+    let controlsSetup = false;
+
+    function init() {
+        gameArea = new GameArea("containerOne");
+        setupControls();
+        startNewGame();
+    }
+
+    function startNewGame() {
+        player = new Component(CONFIG.PLAYER_SIZE, CONFIG.PLAYER_SIZE, "red", 10, 120);
+        player.gravity = CONFIG.GRAVITY;
+        score = new Component("25px", "Consolas", "black", 200, 40, "text");
+        obstacles = [];
+        
+        gameArea.reset();
+        gameArea.start(updateGameArea);
+    }
+
+    function setupControls() {
+        if (controlsSetup) return;
+        controlsSetup = true;
+
+        const accelerate = (n) => {
+            if (player && gameArea.isRunning) player.gravity = n;
+        };
+
+        document.getElementById("redButton").addEventListener("mousedown", () => accelerate(0.2));
+        document.getElementById("redButton").addEventListener("mouseup", () => accelerate(CONFIG.GRAVITY));
+        document.getElementById("redButton").addEventListener("mouseleave", () => accelerate(CONFIG.GRAVITY));
+        
+        document.getElementById("blueButton").addEventListener("mousedown", () => accelerate(-0.2));
+        document.getElementById("blueButton").addEventListener("mouseup", () => accelerate(CONFIG.GRAVITY));
+        document.getElementById("blueButton").addEventListener("mouseleave", () => accelerate(CONFIG.GRAVITY));
+        
+        document.getElementById("restartButton").addEventListener("click", startNewGame);
+
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+                e.preventDefault();
+                accelerate(-0.2);
+            }
+        });
+        document.addEventListener("keyup", (e) => {
+            if (e.code === "Space") accelerate(CONFIG.GRAVITY);
+        });
+    }
+
+    function everyInterval(n) {
+        return (gameArea.frameNo / n) % 1 === 0;
+    }
+
+    function updateGameArea() {
+        for (const obstacle of obstacles) {
+            if (player.crashWith(obstacle)) {
+                gameOver();
+                return;
+            }
         }
-        return crash;
-    }
-}
 
-function updateGameArea() {
-    var x, height, gap, minHeight, maxHeight, minGap, maxGap;
-    for (i = 0; i < myObstacles.length; i += 1) {
-        if (myGamePiece.crashWith(myObstacles[i])) {
-            return;
-        } 
-    }
-    myGameArea.clear();
-    myGameArea.frameNo += 1;
-    if (myGameArea.frameNo == 1 || everyinterval(150)) {
-        x = myGameArea.canvas.width;
-        minHeight = 20;
-        maxHeight = 200;
-        height = Math.floor(Math.random()*(maxHeight-minHeight+1)+minHeight);
-        minGap = 50;
-        maxGap = 200;
-        gap = Math.floor(Math.random()*(maxGap-minGap+1)+minGap);
-        myObstacles.push(new component(10, height, "green", x, 0));
-        myObstacles.push(new component(10, x - height - gap, "green", x, height + gap));
-    }
-    for (i = 0; i < myObstacles.length; i += 1) {
-        myObstacles[i].x += -1;
-        myObstacles[i].update();
-    }
-    myScore.text="SCORE: " + myGameArea.frameNo;
-    myScore.update();
-    myGamePiece.newPos();
-    myGamePiece.update();
-}
+        gameArea.clear();
+        gameArea.frameNo += 1;
 
-function everyinterval(n) {
-    if ((myGameArea.frameNo / n) % 1 == 0) {return true;}
-    return false;
-}
+        if (gameArea.frameNo === 1 || everyInterval(CONFIG.OBSTACLE_INTERVAL)) {
+            const x = gameArea.canvas.width;
+            const minHeight = 20;
+            const maxHeight = 200;
+            const height = Math.floor(Math.random() * (maxHeight - minHeight + 1) + minHeight);
+            const minGap = 50;
+            const maxGap = 200;
+            const gap = Math.floor(Math.random() * (maxGap - minGap + 1) + minGap);
+            
+            obstacles.push(new Component(CONFIG.OBSTACLE_WIDTH, height, "green", x, 0));
+            obstacles.push(new Component(CONFIG.OBSTACLE_WIDTH, x - height - gap, "green", x, height + gap));
+        }
 
-function accelerate(n) {
-    myGamePiece.gravity = n;
-}
+        obstacles.forEach(obstacle => {
+            obstacle.x -= CONFIG.OBSTACLE_SPEED;
+            obstacle.update(gameArea.context);
+        });
+
+        obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+        score.text = `SCORE: ${gameArea.frameNo}`;
+        score.update(gameArea.context);
+        player.newPos();
+        player.update(gameArea.context);
+    }
+
+    function gameOver() {
+        gameArea.stop();
+        const ctx = gameArea.context;
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+        ctx.font = "30px Consolas";
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over", CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2);
+        ctx.font = "16px Consolas";
+        ctx.fillText("Press Restart", CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 40);
+    }
+
+    return { init };
+})();
+
+document.addEventListener("DOMContentLoaded", game.init);

@@ -3,16 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="style.css" />
-    <script src="main.js"></script> 
-    <title>Game_Two</title>
+    <title>Game Two</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="main.js" defer></script>
 </head>
-
-<body onload="startGame()">
-<div id="containerOne"></div>
-<div id="containerTwo">
-    <div id="redButton" onmousedown="accelerate(-0.01)"></div>
-    <div id="blueButton" onmouseup="accelerate(0.01)"></div>
-</div>
+<body>
+    <h1>Game Two</h1>
+    <div id="containerOne"></div>
+    <div id="containerTwo">
+        <button id="redButton" aria-label="Move down"></button>
+        <button id="blueButton" aria-label="Move up"></button>
+        <button id="restartButton">Restart</button>
+    </div>
 </body>
 </html>
