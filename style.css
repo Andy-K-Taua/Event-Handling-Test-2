@@ -63,3 +63,9 @@ canvas {
     padding: 8px 16px;
     cursor: pointer;
 }
+
+button {
+    touch-action: manipulation; 
+    -webkit-user-select: none;
+    user-select: none;
+}
