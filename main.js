@@ -125,33 +125,63 @@ const game = (() => {
     }
 
     function setupControls() {
-        if (controlsSetup) return;
-        controlsSetup = true;
+    if (controlsSetup) return;
+    controlsSetup = true;
 
-        const accelerate = (n) => {
-            if (player && gameArea.isRunning) player.gravity = n;
-        };
+    const accelerate = (n) => {
+        if (player && gameArea.isRunning) player.gravity = n;
+    };
 
-        document.getElementById("redButton").addEventListener("mousedown", () => accelerate(0.2));
-        document.getElementById("redButton").addEventListener("mouseup", () => accelerate(CONFIG.GRAVITY));
-        document.getElementById("redButton").addEventListener("mouseleave", () => accelerate(CONFIG.GRAVITY));
-        
-        document.getElementById("blueButton").addEventListener("mousedown", () => accelerate(-0.2));
-        document.getElementById("blueButton").addEventListener("mouseup", () => accelerate(CONFIG.GRAVITY));
-        document.getElementById("blueButton").addEventListener("mouseleave", () => accelerate(CONFIG.GRAVITY));
-        
-        document.getElementById("restartButton").addEventListener("click", startNewGame);
+    const redBtn = document.getElementById("redButton");
+    const blueBtn = document.getElementById("blueButton");
 
-        document.addEventListener("keydown", (e) => {
-            if (e.code === "Space") {
-                e.preventDefault();
-                accelerate(-0.2);
-            }
-        });
-        document.addEventListener("keyup", (e) => {
-            if (e.code === "Space") accelerate(CONFIG.GRAVITY);
-        });
-    }
+    // Red button - down
+    redBtn.addEventListener("mousedown", () => accelerate(0.2));
+    redBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault(); // Stops screen scroll/zoom
+        accelerate(0.2);
+    });
+
+    redBtn.addEventListener("mouseup", () => accelerate(CONFIG.GRAVITY));
+    redBtn.addEventListener("mouseleave", () => accelerate(CONFIG.GRAVITY));
+    redBtn.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        accelerate(CONFIG.GRAVITY);
+    });
+    redBtn.addEventListener("touchcancel", () => accelerate(CONFIG.GRAVITY));
+
+    // Blue button - up  
+    blueBtn.addEventListener("mousedown", () => accelerate(-0.2));
+    blueBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        accelerate(-0.2);
+    });
+
+    blueBtn.addEventListener("mouseup", () => accelerate(CONFIG.GRAVITY));
+    blueBtn.addEventListener("mouseleave", () => accelerate(CONFIG.GRAVITY));
+    blueBtn.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        accelerate(CONFIG.GRAVITY);
+    });
+    blueBtn.addEventListener("touchcancel", () => accelerate(CONFIG.GRAVITY));
+    
+    document.getElementById("restartButton").addEventListener("click", startNewGame);
+    document.getElementById("restartButton").addEventListener("touchend", (e) => {
+        e.preventDefault();
+        startNewGame();
+    });
+
+    // Keyboard stays the same
+    document.addEventListener("keydown", (e) => {
+        if (e.code === "Space") {
+            e.preventDefault();
+            accelerate(-0.2);
+        }
+    });
+    document.addEventListener("keyup", (e) => {
+        if (e.code === "Space") accelerate(CONFIG.GRAVITY);
+    });
+}
 
     function everyInterval(n) {
         return (gameArea.frameNo / n) % 1 === 0;
